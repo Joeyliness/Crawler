@@ -1,0 +1,50 @@
+library(rvest)
+library(RSelenium)
+library(stringi)
+
+# 读取人名拼音
+data <- read.csv(file.choose(), encoding = 'UTF-8', header = F) %>% .$V1 %>% as.vector()
+
+# 启动Selenium服务器
+shell("java -jar D:/R/library/Rwebdriver/selenium-server-standalone-3.7.1.jar", 
+      wait = FALSE, invisible = FALSE)
+
+# 打开浏览器-连接页面-输入查找信息-爬取内容
+Info <- list()
+remDr <- remoteDriver(browserName = "chrome")
+remDr$open()
+for (i in seq_along(data)) {
+  url <- 'http://cped.nccu.edu.tw/listhan'
+  remDr$navigate(url)
+  
+  # 定位到input搜索框 
+  subElem <- remDr$findElement(using = 'name', value = 'field_re_han_name_value')
+  
+  # 清除搜索框内原来的默认信息
+  subElem$clearElement()
+  subElem$sendKeysToElement(list(c(data[i]), key = 'enter'))
+  
+  # 查找结果如果是“資料庫無任何記錄”，就跳过进入下一个
+  emp <- remDr$getPageSource()[[1]] %>% read_html(encoding = "UTF-8")
+  if (emp %>% html_nodes('div.view-empty') %>% html_text() %>% length == 1) {
+    next
+  } else {
+    
+    # 如果查找到相应的信息，就定位到链接位置
+    personElem <- remDr$findElement(value = '//span[@class="field-content"]/a[@href]')
+    personurl <- personElem$getElementAttribute('href')
+    
+    # 点击链接
+    personElem$clickElement()
+    
+    # 获取页面内容
+    destination <- remDr$getPageSource()[[1]] %>% read_html(encoding = "UTF-8")
+    baseinfo    <- destination %>% html_nodes(., xpath = '//table[@id="basic-info"]') %>% html_text() %>% 
+                   gsub('\t', '', .) %>% gsub('\n', ' ', .) %>% stri_trim_both() 
+    Info[[i]]   <- baseinfo
+    Sys.sleep(3)
+  }
+}
+
+# 关闭浏览器
+remDr$close()
