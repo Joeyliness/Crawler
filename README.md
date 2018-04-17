@@ -1,2 +1,2 @@
 # Crawler
-Extract key information from specific website
+Extract key person information from specific website
