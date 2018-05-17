@@ -2,14 +2,14 @@ library(rvest)
 library(RSelenium)
 library(stringi)
 
-# 读取人名拼音
+# all data.csv（all Chinese names in pinyin）
 data <- read.csv(file.choose(), encoding = 'UTF-8', header = F) %>% .$V1 %>% as.vector()
 
-# 启动Selenium服务器
+# start Selenium server
 shell("java -jar D:/R/library/Rwebdriver/selenium-server-standalone-3.7.1.jar", 
       wait = FALSE, invisible = FALSE)
 
-# 打开浏览器-连接页面-输入查找信息-爬取内容
+# open Chrome-connect to webpage-input each name-web crawling
 Info <- list()
 remDr <- remoteDriver(browserName = "chrome")
 remDr$open()
@@ -17,27 +17,27 @@ for (i in seq_along(data)) {
   url <- 'http://cped.nccu.edu.tw/listhan'
   remDr$navigate(url)
   
-  # 定位到input搜索框 
+  # locate to the "input" search box
   subElem <- remDr$findElement(using = 'name', value = 'field_re_han_name_value')
   
-  # 清除搜索框内原来的默认信息
+  # clear default information in search box
   subElem$clearElement()
   subElem$sendKeysToElement(list(c(data[i]), key = 'enter'))
   
-  # 查找结果如果是“資料庫無任何記錄”，就跳过进入下一个
+  # searching with no result（show “資料庫無任何記錄”），skip to next person
   emp <- remDr$getPageSource()[[1]] %>% read_html(encoding = "UTF-8")
   if (emp %>% html_nodes('div.view-empty') %>% html_text() %>% length == 1) {
     next
   } else {
     
-    # 如果查找到相应的信息，就定位到链接位置
+    # locate to the link if person information is available
     personElem <- remDr$findElement(value = '//span[@class="field-content"]/a[@href]')
     personurl <- personElem$getElementAttribute('href')
     
-    # 点击链接
+    # click the located link
     personElem$clickElement()
     
-    # 获取页面内容
+    # get page content
     destination <- remDr$getPageSource()[[1]] %>% read_html(encoding = "UTF-8")
     baseinfo    <- destination %>% html_nodes(., xpath = '//table[@id="basic-info"]') %>% html_text() %>% 
                    gsub('\t', '', .) %>% gsub('\n', ' ', .) %>% stri_trim_both() 
@@ -46,5 +46,5 @@ for (i in seq_along(data)) {
   }
 }
 
-# 关闭浏览器
+# close Chrome
 remDr$close()
