@@ -76,7 +76,7 @@ while (TRUE) {
   if (length(pagebuttom) == 0) {
     break
   } else {
-    nextpage <- remDr$findElement('css', 'div.TitleLeftCell font.Mark+a')
+    nextpage <- remDr$findElement('css', 'div.TitleLeftCell font.Mark + a')
     nextpage$clickElement()
   }
 }
