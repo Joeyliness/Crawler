@@ -1,2 +1,2 @@
 # RSelenium
-Extract key information from specific website
+Extract key information from specified website
