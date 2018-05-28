@@ -59,9 +59,11 @@ while (TRUE) {
       destination <- remDr$getPageSource()[[1]] %>% read_html(encoding = 'utf-8')
       title       <- destination %>% html_nodes('h2.title') %>% html_text()
       if (length(title) == 0) {title = NA}
-      content     <- destination %>% html_nodes('div.wxBaseinfo p label+span') %>% html_text()
+      content     <- destination %>% html_nodes('div.wxBaseinfo p label + span') %>% html_text()
       if (length(content) == 0) {content = NA}
-      ab          <- rbind(ab, data.frame(title, content))
+      keyword     <- destination %>% html_nodes('label#catalog_KEYWORD ~ a') %>% html_text() %>% str_trim()
+      if (length(keyword) == 0) {keyword = NA}
+      ab          <- rbind(ab, data.frame(title, content, keyword))
       remDr$closeWindow()
     }
   }
@@ -83,3 +85,6 @@ while (TRUE) {
 remDr$close()
 result <- merge(sum, ab, by.x = '篇名', by.y = 'title')
 write.csv(result, row.names = F, 'result.csv')
+
+# Check omissions
+omission <- setdiff(sum$篇名, result$篇名)
