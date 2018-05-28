@@ -39,7 +39,7 @@ ab  <- list()
 while (TRUE) {
 
   # Crawl page table, the '[[5]]' varies with different page
-  destination <- remDr$getPageSource()[[1]] %>% read_html(., encoding = 'utf-8')
+  destination <- remDr$getPageSource()[[1]] %>% read_html(encoding = 'utf-8')
   table       <- html_table(destination, header = T, fill = T)[[5]]
   sum         <- rbind(sum, table)
   
@@ -56,7 +56,7 @@ while (TRUE) {
   for (window in allwindow) {
     if (window != currwindow) {
       remDr$switchToWindow(window)
-      destination <- remDr$getPageSource()[[1]] %>% read_html(., encoding = 'utf-8')
+      destination <- remDr$getPageSource()[[1]] %>% read_html(encoding = 'utf-8')
       title       <- destination %>% html_nodes('h2.title') %>% html_text()
       if (length(title) == 0) {title = NA}
       content     <- destination %>% html_nodes('div.wxBaseinfo p label+span') %>% html_text()
