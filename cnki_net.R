@@ -44,7 +44,7 @@ while (TRUE) {
   sum         <- rbind(sum, table)
   
   # Check if there is a next-page button
-  pagebuttom <- destination %>% html_nodes('div.TitleLeftCell a:last-child') %>% html_text()
+  pagebutton <- destination %>% html_nodes('div.TitleLeftCell a:last-child') %>% html_text()
   
   # Open each article in child window
   abstracts <- remDr$findElements('css', 'a.fz14')
@@ -73,7 +73,7 @@ while (TRUE) {
   remDr$switchToFrame(webElem[[2]])
   
   # Go to next page if there is a next-page button
-  if (length(pagebuttom) == 0) {
+  if (length(pagebutton) == 0) {
     break
   } else {
     nextpage <- remDr$findElement('css', 'div.TitleLeftCell font.Mark + a')
@@ -88,3 +88,8 @@ write.csv(result, row.names = F, 'result.csv')
 
 # Check omissions
 omission <- setdiff(sum$篇名, result$篇名)
+
+
+
+# https://stackoverflow.com/questions/26559192/open-a-new-tab-in-rselenium
+# https://stackoverflow.com/questions/38904264/rselenium-switching-windows-using-window-handle
