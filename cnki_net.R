@@ -10,7 +10,7 @@ remDr$navigate("http://kns.cnki.net/kns/brief/default_result.aspx")
 keyElem <- remDr$findElement('class', 'rekeyword')
 keyElem$sendKeysToElement(list('短文本分类', key = 'enter'))
 
-#################################### Page Options ####################################
+#--------------------------------------------------- Page Options ---------------------------------------------------#
 
 # 文献（SCDB）；期刊（CJFQ）；博硕士（CDMD）；会议（CIPD）；报纸（CCND）；外文文献（WWDB）
 # 年鉴（CYFD）；百科（CRPD）；词典（CRDD）；统计数据（CSYD）；专利（SCOD）
@@ -32,7 +32,7 @@ time$clickElement()
 # 显示列表：showlist <- remDr$findElement('css', 'span.ZYcur a');showlist$clickElement()
 # 显示摘要：showabstract <- remDr$findElement('css', 'span.LBcur a');showabstract$clickElement()
 
-################################## Page Options End ##################################
+#------------------------------------------------- Page Options End -------------------------------------------------#
 
 sum <- list()
 ab  <- list()
@@ -90,6 +90,55 @@ write.csv(result, row.names = F, 'result.csv')
 omission <- setdiff(sum$篇名, result$篇名)
 
 
+#--------------------------------------------------- Download ---------------------------------------------------#
 
-# https://stackoverflow.com/questions/26559192/open-a-new-tab-in-rselenium
+# Articles we would like to download 
+articlename <- read.csv(file.choose(), sep = '\t', header = F, encoding = 'utf-8') %>% .$V1 %>% as.vector()
+
+# Downloading
+downloadrecord <- list()
+for (i in seq_along(articlename)) {
+      
+  if (!(articlename[i] %in% names(downloadrecord))) {
+    cat(paste("Downloading", i, articlename[i]))
+    remDr$navigate("http://kns.cnki.net/kns/brief/default_result.aspx")
+        
+    # Dropdown button
+    select  <- remDr$findElement('class', 'searchw8')
+    select$clickElement()
+        
+    # 主题（nth-child(1)）；全文（nth-child(2)）；篇名（nth-child(3)）；作者（nth-child(4)）；单位（nth-child(5)）；关键词（nth-child(6)）
+    # 摘要（nth-child(7)）；参考文献（nth-child(8)）；中图分类号（nth-child(9)）；文献来源（nth-child(10)）
+    option  <- remDr$findElement('css', 'select.searchw8 option:nth-child(3)')
+    option$clickElement()
+    
+    # Input article name
+    keyElem <- remDr$findElement('class', 'rekeyword')
+    keyElem$sendKeysToElement(list(articlename[i], key = 'enter'))
+    
+    webElem <- remDr$findElements("css", "iframe")
+    remDr$switchToFrame(webElem[[2]])
+        
+    Sys.sleep(8)
+    
+    # Click download button
+    downloadbutton <- remDr$findElement('css', 'a.briefDl_Y')
+    downloadbutton$clickElement()
+        
+    # Crawl title
+    destination <- remDr$getPageSource()[[1]] %>% read_html(., encoding = 'utf-8')
+    title <- destination %>% html_node('a.fz14') %>% html_text()
+        
+    # Download record    
+    downloadrecord[[i]] <- title
+    names(downloadrecord)[[i]] <- title
+        
+    cat('Done.')
+    cat('\n')
+  }
+}
+
+#------------------------------------------------- End Download -------------------------------------------------#
+
+# Reference: https://stackoverflow.com/questions/26559192/open-a-new-tab-in-rselenium
 # https://stackoverflow.com/questions/38904264/rselenium-switching-windows-using-window-handle
