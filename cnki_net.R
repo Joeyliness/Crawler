@@ -138,6 +138,10 @@ for (i in seq_along(articlename)) {
   }
 }
 
+compare <- data.frame(articlename, unlist(downloadrecord))
+names(compare) <- c('articlename', 'downloadrecord')
+omission <- setdiff(compare$articlename, compare$downloadrecord)
+
 #------------------------------------------------- End Download -------------------------------------------------#
 
 # Reference: https://stackoverflow.com/questions/26559192/open-a-new-tab-in-rselenium
