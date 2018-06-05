@@ -61,7 +61,7 @@ while (TRUE) {
       if (length(title) == 0) {title = NA}
       content     <- destination %>% html_nodes('div.wxBaseinfo p label + span') %>% html_text()
       if (length(content) == 0) {content = NA}
-      keyword     <- destination %>% html_nodes('label#catalog_KEYWORD ~ a') %>% html_text() %>% str_trim()
+      keyword     <- destination %>% html_nodes('label#catalog_KEYWORD ~ a') %>% html_text() %>% str_trim() %>% paste0(., collapse = '')
       if (length(keyword) == 0) {keyword = NA}
       ab          <- rbind(ab, data.frame(title, content, keyword))
       remDr$closeWindow()
@@ -83,11 +83,11 @@ while (TRUE) {
 
 # Merge info and save
 remDr$close()
-result <- merge(sum, ab, by.x = '篇名', by.y = 'title')
+result <- merge(sum, ab, by.x = '篇名', by.y = 'title', all.x = TRUE)
 write.csv(result, row.names = F, 'result.csv')
 
 # Check omissions
-omission <- setdiff(sum$篇名, result$篇名)
+omission <- setdiff(sum$篇名, ab$title)
 
 
 #--------------------------------------------------- Download ---------------------------------------------------#
