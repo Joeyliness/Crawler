@@ -1,0 +1,89 @@
+library(XML)
+library(rvest)
+library(RSelenium)
+
+# Urls of all playlists
+get_playlist <- function(x) {
+  remDr$navigate(x)
+  webElem <- remDr$findElements('css', 'iframe')
+  remDr$switchToFrame(webElem[[1]])
+  destination <- remDr$getPageSource()[[1]] %>% read_html()
+  playlist <- destination %>% html_nodes('ul#cBox > li > div > a') %>% html_attr('href')
+  playlist <- paste0(homebase, playlist)
+  return(playlist)
+}
+
+# Urls of all songs
+get_song <- function(x) {
+  remDr$navigate(x)
+  webElem <- remDr$findElements('css', 'iframe')
+  remDr$switchToFrame(webElem[[1]])
+  destination <- remDr$getPageSource()[[1]] %>% read_html()
+  name    <- destination %>% html_nodes('tbody tr td span.txt a b') %>% html_attr('title')
+  time    <- destination %>% html_nodes('span.u-dur') %>% html_text()
+  singer  <- destination %>% html_nodes('tbody tr td > div.text > span') %>% html_attr('title')
+  album   <- destination %>% html_nodes('tbody tr td > div.text > a') %>% html_attr('title')
+  songurl <- destination %>% html_nodes('tbody tr td span.txt a') %>% html_attr('href') %>% paste0(homebase, .)
+  table   <- data.frame(name, time, singer, album, songurl) %>% unique()
+  return(table)
+}
+
+# Get lyric
+get_lyric <- function(x) {
+  remDr$navigate(x)
+  webElem <- remDr$findElements("css", "iframe")
+  remDr$switchToFrame(webElem[[1]])
+  unclick <- remDr$getPageSource()[[1]] %>% read_html()
+  name <- unclick %>% html_nodes(".tit em") %>% html_text()
+  shortlyric <- unclick %>% html_nodes("#lyric-content") %>% html_text()
+  if (length(remDr$findElements("css", "a#flag_ctrl")) != 0) {
+    remDr$executeScript("arguments[0].click();", 
+                        list(remDr$findElement("css", "a#flag_ctrl")))
+    click <- remDr$getPageSource()[[1]] %>% read_html()
+    lyric <- click %>% html_nodes("#lyric-content") %>% html_text()
+  } else {
+    lyric <- shortlyric
+  }
+  table <- data.frame(name, lyric, link = x)
+  return(table)
+}
+
+
+shell("java -jar D:/R/library/Rwebdriver/selenium-server-standalone-3.13.0.jar", 
+      wait = FALSE, invisible = FALSE)
+remDr <- remoteDriver(browserName = "chrome")
+remDr$open()
+homebase <- 'https://music.163.com/#'
+personurl <- 'https://music.163.com/#/user/home?id=add by yourself'
+playlist <- get_playlist(personurl)
+
+songlist <- list()
+for (link in playlist) {
+  table <- get_song(link)
+  songlist <- rbind(songlist, table)
+  cat(sprintf('%s is done', link), sep = '\n')
+}
+
+record <- list()
+lyriclist <- list()
+songurl <- as.vector(songlist$songurl)
+for (link in songurl) {
+  if (!(link %in% unlist(record))) {
+    table <- get_lyric(link)
+    lyriclist <- rbind(lyriclist, table)
+    record <- rbind(record, link)
+    cat(sprintf('"%s" is done', as.vector(table$name)), sep = '\n')
+  }
+} 
+remDr$close()
+
+library(jiebaR)
+library(Rwordseg)
+library(wordcloud2)
+lyric <- lyriclist$lyric %>% as.character() %>% paste(., collapse = '')
+segment <- segmentCN(lyric) %>% unlist()
+stop <- read.csv('stop.csv', sep = '\t') %>% .[, 1] %>% as.vector()
+movestop <- segment[-which(segment %in% stop)]
+wordfreq <- freq(movestop)
+wordfreq <- wordfreq[with(wordfreq, order(freq, decreasing = T)),]
+wordcloud2(wordfreq[which(wordfreq$freq > 10), ])
